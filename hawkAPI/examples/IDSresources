@@ -1,0 +1,64 @@
+#!/usr/bin/python
+
+"""
+Import standard libraires
+"""
+
+import os
+import sys
+from datetime import datetime,timedelta
+from optparse import OptionParser
+import json
+from netaddr import IPAddress
+"""
+Import Hawk Specific API
+"""
+
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkGraph
+from hawkAPI import createPdf2
+
+"""
+Example Options
+"""
+usage = 'checkIDSresources-u "uid" -p "pass" -i "hawkip" '
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+
+
+
+(opt,args) = parser.parse_args()
+
+def testip(ip):
+   try:
+      test = IPAddress(ip)
+   except:
+      return 0
+   else:
+      return 1
+
+"""
+End Options
+"""
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+tclient = []
+start = hawk.getDateUtc('h',delta=24) 
+end = hawk.getDateUtc()
+res = hawk.getResType()
+for i in res["resource"]:
+   data = testip(i["resource_name"])
+   if data == 0:
+      ndata = hawk.getIDSAlerts(start,end,lm=1,res=i["resource_name"])
+      if not ndata:
+         tclient.append(i["resource_name"])
+   else:
+         pass
+f = open("/home/dfelts/HawkReport/idssensors.txt","w")
+f.write("The below listed idssensors have not recievied an logs in 30 mins.\n\r\n\r")
+for i in tclient:
+      f.write("No logs in past 30 minutes: %s\n\r\n\r" % i)    
+hawk.logout()
+f.close()

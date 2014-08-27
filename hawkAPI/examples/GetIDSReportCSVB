@@ -1,0 +1,93 @@
+#!/usr/bin/python
+import time
+import sys
+import string
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkPdf
+import datetime
+from optparse import OptionParser
+fivemin = 5
+usage = 'GetIDSReportCSV -u "id" -p "pass" -i "server" -c "client" -d days -l directory'
+
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-l",dest="dir",help="location to store")
+
+(opt,args) = parser.parse_args()
+if not opt.user:
+   parser.error("No User id provided")
+if not opt.passw:
+   parser.error("No Password provided")
+if not opt.server:
+   parser.error("Hawk IP address")
+if not opt.client:
+   parser.error("No Client Set")
+if not opt.days:
+   parser.error("Set Days")
+if not opt.dir:
+   parser.error("Directory to save files")
+
+day = 1440
+totaldays = day * int(opt.days)
+print "Total Min:%s:" % totaldays
+startdate = int(totaldays) / 5
+print "Total Collections:%s" % startdate
+data = []
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+nameit = opt.dir + opt.client + "-utc-IDS.csv"
+myfile = open(nameit,"w")
+myfile.write("date_added_utc,ip_src,ip_dst,alert_name\n")
+
+
+def doData():
+     for i in data: 
+        start,end,mid = i 
+        doGet(start,end,mid)
+
+
+def doDates():
+    idit = 0
+    mydate = 0
+    for i in range(1,startdate):
+        if mydate != 1:
+           start = datetime.datetime.utcnow()
+           fstart = start - datetime.timedelta(minutes=totaldays)
+           end = fstart + datetime.timedelta(minutes=5)
+           data.append([fstart.replace(microsecond=0),end.replace(microsecond=0),idit])
+           nstart = end
+           mydate = 1
+        else:
+           idit = i
+           start = nstart
+           end = nstart + datetime.timedelta(minutes=5)
+           data.append([start.replace(microsecond=0),end.replace(microsecond=0),idit])
+           nstart = end
+
+def doGet(start,end,mid):
+   print "%s-%s---(%s)" % (start,end,mid)
+   try:
+       data = hawk.getIDSAlertsByGroup(start,end,opt.client) 
+   except:
+      return
+   else:
+      for i in data:
+          myfile.write("%s,%s,%s,%s\n" % (i["date_added"],i["ip_src"],i["ip_dst"],i["alert_name"]))
+          myfile.flush()
+
+
+def doClose():
+    hawk.logout()
+    myfile.flush()
+    myfile.close()
+    
+
+if __name__ == '__main__':
+  doDates()
+  doData()
+  doClose()
+  sys.exit(1)

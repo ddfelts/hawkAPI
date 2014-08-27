@@ -1,0 +1,62 @@
+#!/usr/bin/python
+
+"""
+Import standard libraires
+"""
+
+import os
+import sys
+from datetime import datetime,timedelta
+from optparse import OptionParser
+import json
+
+"""
+Import Hawk Specific API
+"""
+
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkGraph
+from hawkAPI import createPdf2
+
+"""
+Example Options
+"""
+usage = 'checkClient -u "uid" -p "pass" -i "hawkip" '
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+
+
+
+(opt,args) = parser.parse_args()
+
+
+"""
+End Options
+"""
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+
+start = hawk.getDateUtc('m',delta=30) 
+end = hawk.getDateUtc()
+tclient = []
+clients = hawk.getGroups()
+for i in clients["children"]:
+    if i["name"] == "Default Group":
+       for b in i["children"]:
+           if b["children"] == False:
+              tclient.append(b["name"])
+           else:
+              for c in b["children"]:
+                  tclient.append(c["name"])
+
+f = open("/home/dfelts/HawkReport/current.txt","w")
+f.write("The below listed clients have not recievied an IDS log in 30 mins.\n\r\n\r")
+
+for i in tclient:
+   alert = hawk.getIDSAlertsByGroup(start,end,i,lm=1)
+   if not alert:
+      f.write("No logs in past 30 minutes: %s\n\r\n\r" % i)    
+hawk.logout()
+f.close()

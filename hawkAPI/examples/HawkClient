@@ -1,0 +1,127 @@
+#!/usr/bin/python
+
+import sys
+import os
+#sys.path.append(os.path.abspath('/home/dfelts/HawkReport/reporti/'))
+#sys.path.append(os.path.abspath('/home/dfelts/HawkReport/lib/'))
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkGraph
+from datetime import date, timedelta
+from hawkAPI import hawkPdf
+from optparse import OptionParser
+
+usage = 'HawkClient -u "id" -p "pass" -i "server" -c "client" -d days -l directory'
+
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-l",dest="dir",help="location to store")
+
+(opt,args) = parser.parse_args()
+if not opt.user:
+   parser.error("No User id provided")
+if not opt.passw:
+   parser.error("No Password provided")
+if not opt.server:
+   parser.error("Hawk IP address")
+if not opt.client:
+   parser.error("No Client Set")
+if not opt.days:
+   parser.error("Set Days")
+if not opt.dir:
+   parser.error("Directory to save files")
+
+graph = hawkGraph.hawkGraph()
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+
+    
+start = start = date.today() - timedelta(days=int(opt.days))
+end = date.today()
+client = opt.client
+
+
+#Get Top Priority for the client
+main = []
+data = hawk.getAllPriorityByGroup(str(start),str(end),str(client))
+print data
+for i in data:
+    main.append({"title":i["priority"],
+                 "data":int(i["priority_count"])})   
+graph.HBar("Priority",main)
+pdata = data
+
+
+#Get Top IP srcs by the group name
+main = []
+data = hawk.getTopIpSrcByGroup(str(start),str(end),str(client),lm=10)
+for i in data:
+     main.append({"title":i["ip_src"],
+                 "data":int(i["ip_src_count"])})
+graph.Pie("Top_IP_Source",main)
+ipdata = data
+
+
+#Get Top IP Dst by the group name
+main = []
+data = hawk.getTopIpDstByGroup(str(start),str(end),opt.client,lm=10)
+for i in data:
+     main.append({"title":i["ip_dst"],
+                 "data":int(i["ip_dst_count"])})
+graph.Pie("Top_IP_Dst",main)
+dstdata = data
+
+#Get Top alerts by group name
+main = []
+data = hawk.getTopAlertsByGroup(str(start),str(end),opt.client,lm=10)
+for i in data:
+    main.append({"title":i["alert_name"],
+                 "data":int(i["alert_name_count"])})
+graph.HBar("Top_Ten_Alerts",main)
+adata = data
+hawk.logout()
+
+
+nameit = opt.dir + opt.client + ".pdf"
+doc = hawkPdf.HawkReport(nameit)
+doc.setTitle("Client Top Ten Report")
+doc.setDate(str(start),str(end))
+doc.setClientName(opt.client)
+doc.setClientImage("/home/dfelts/HawkReport/images.jpeg")
+doc.addPageBreak()
+
+doc.createToc()
+
+
+doc.addStoryTitle("Top Ten IP Sources")
+doc.addStory("Top ten IP sources outlines the top ten source IP addresses creating alerts.")
+doc.addImage("%s/Top_IP_Source.png" % graph.getDir())
+doc.addTableIpSrcByGroup(ipdata)
+doc.addPageBreak()
+
+doc.addStoryTitle("Top Ten Destinations")
+doc.addStory("Top ten IP destination outlines the top ten targets being attacked or causing alerts on the network.")
+doc.addImage("%s/Top_IP_Dst.png" % graph.getDir())
+doc.addTableIpDstByGroup(dstdata)
+doc.addPageBreak()
+
+
+doc.addStoryTitle("Top Priorities")
+doc.addStory("Alert Priority (Assigned by HAWK, or provided by 3rd-party Vendor ) 1= high to 5 = informational")
+doc.addImage("%s/Priority.png" % graph.getDir())
+doc.addTablePriority(pdata)
+#   doc.addStory("NO ALERTS") 
+doc.addPageBreak()
+
+doc.addStoryTitle("Top Ten Alerts")
+doc.addStory("This information displays the top ten alerts that are present and that have been seen in the current enviroment")
+doc.addImage("%s/Top_Ten_Alerts.png" % graph.getDir())
+doc.addTableAlerts(adata)
+doc.addPageBreak()
+
+doc.savePdf()
+graph.removeDir() 
+sys.exit(1)

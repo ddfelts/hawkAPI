@@ -1,0 +1,66 @@
+#!/usr/bin/python
+import time
+import sys
+import string
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkPdf
+import datetime
+from optparse import OptionParser
+
+usage = 'GetResCountPdf -u "id" -p "pass" -i "server" -c "client" -d days -l directory'
+
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-l",dest="dir",help="location to store")
+
+(opt,args) = parser.parse_args()
+if not opt.user:
+   parser.error("No User id provided")
+if not opt.passw:
+   parser.error("No Password provided")
+if not opt.server:
+   parser.error("Hawk IP address")
+if not opt.client:
+   parser.error("No Client Set")
+if not opt.days:
+   parser.error("Set Days")
+if not opt.dir:
+   parser.error("Directory to save files")
+
+
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+
+
+def doGet(start,end,group):
+   ndata = [["Name,Count"]] 
+   data = hawk.getTopResByGroup(start,end,group)
+   for i in data:
+      ndata.append([i["resource_name"],i["resource_name_count"]])
+   return ndata
+
+
+if __name__ == '__main__':
+
+  start = hawk.getDateUtc('d',delta=opt.days)
+  end = hawk.getDateUtc()
+  mydata = doGet(start,end,opt.client)
+  nameit = opt.dir + opt.client + ".pdf"
+  doc = hawkPdf.XeroxReport(nameit)
+  doc.setTitle("Client Resource Count")
+  doc.setDate(str(start),str(end))
+  doc.setClientName(opt.client)
+  doc.setClientImage("images.jpeg")
+  doc.addPageBreak()
+  doc.createToc()
+  doc.addStoryTitle("Resource Count")
+  doc.addStory("This report shows the resources and total number of events seen on that resource.")
+  doc.addTableDefault(mydata)
+  doc.addPageBreak()
+  doc.savePdf()
+  hawk.logout()
+  sys.exit(1)

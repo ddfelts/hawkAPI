@@ -1,0 +1,57 @@
+#!/usr/bin/python
+import time
+import sys
+import string
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkPdf
+import datetime
+from optparse import OptionParser
+
+usage = 'failedattemptsCSV -u "id" -p "pass" -i "server" -c "client" -d days -l directory'
+
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-l",dest="dir",help="location to store")
+
+(opt,args) = parser.parse_args()
+if not opt.user:
+   parser.error("No User id provided")
+if not opt.passw:
+   parser.error("No Password provided")
+if not opt.server:
+   parser.error("Hawk IP address")
+if not opt.client:
+   parser.error("No Client Set")
+if not opt.days:
+   parser.error("Set Days")
+if not opt.dir:
+   parser.error("Directory to save files")
+
+
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+
+
+def doGet(start,end,group):
+   data = hawk.getFailedLoginsByGroup(start,end,group) 
+   return data
+
+
+if __name__ == '__main__':
+
+  start = hawk.getDateUtc('d',delta=opt.days)
+  end = hawk.getDateUtc()
+  mydata = doGet(start,end,opt.client)
+  nameit = opt.dir + opt.client + ".csv"
+  myfile = open(nameit,"w")
+  myfile.write("date_added,correlation_username,ip_src_host,res_name,res_addr,alert_type,payload\n")
+  for i in mydata:
+      myfile.write("%s,%s,%s,%s,%s,%s\n" % (i["date_added"],i["correlation_username"],i["resource_name"],i["resource_addr"],i["alerts_type_name"],i["payload"]))
+  myfile.flush()
+  myfile.close()
+  hawk.logout()
+  sys.exit(1)

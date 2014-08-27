@@ -1,0 +1,56 @@
+#!/usr/bin/python
+
+"""
+Import standard libraires
+"""
+
+import os
+import sys
+from datetime import datetime,timedelta
+from optparse import OptionParser
+import json
+from netaddr import IPAddress
+"""
+Import Hawk Specific API
+"""
+
+from hawkAPI import hawkAPI2
+from hawkAPI import hawkGraph
+from hawkAPI import createPdf2
+
+"""
+Example Options
+"""
+usage = 'checkIDSresources-u "uid" -p "pass" -i "hawkip" '
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+
+
+
+(opt,args) = parser.parse_args()
+
+def testip(ip):
+   try:
+      test = IPAddress(ip)
+   except:
+      return 0
+   else:
+      return 1
+
+"""
+End Options
+"""
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+tclient = []
+start = hawk.getDateUtc('h',delta=1) 
+end = hawk.getDateUtc()
+res = hawk.getResType()
+for i in res["resource"]:
+   ips = testip(i["resource_name"])
+   if ips == 0:
+      print i["resource_name"]  
+hawk.logout()
+

@@ -1,0 +1,108 @@
+#!/usr/bin/python
+import sys
+import json
+#sys.path.append('lib')
+from hawkAPI import hawkAPI2
+from datetime  import date, timedelta
+from optparse import OptionParser
+
+usage = 'GetReports -u "uid" -p "upass" -i "serverip" -c "client" -d 1 -l "/home/username/"'
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-l",dest="dir",help="Directory to store")
+(opt,args) = parser.parse_args()
+
+if not opt.user:
+   parser.error("No User ID provided")
+if not opt.passw:
+   parser.error("NO Pass provided")
+if not opt.server:
+   parser.error("No hawk IP provided")
+if not opt.client:
+   parser.error("No client specified")
+if not opt.days:
+   parser.error("No days specified")
+if not opt.dir:
+   parser.error("No storage directory specified")
+   
+#hawk = hawkAPI.hawkAPI("138.69.211.29")
+hawk = hawkAPI2.hawkAPI(opt.server)
+a = hawk.login(opt.user,opt.passw)
+#end  = date.today()
+start = date.today() - timedelta(days=int(opt.days))
+nend = str(start) + " 23:59:59"
+nstart = str(start) + " 00:00:00"
+low = hawk.getLowAlertsByGroup(nstart,nend,opt.client)
+if low == 0:
+  print "Low: None"
+else:
+  print "Low: %s" % len(low)
+med = hawk.getMedAlertsByGroup(nstart,nend,opt.client)
+if med == 0:
+  print "Med: None"
+else:
+  print "Med %s" % len(med)
+high = hawk.getHighAlertsByGroup(nstart,nend,opt.client)
+if high == 0:
+  print "High: None" 
+else:
+  print "High %s" % len(high)
+hawk.logout()
+
+if low != 0:
+   
+   noutput = opt.dir + opt.client + "-Low.csv"
+   print noutput
+   mfile = open(opt.dir + opt.client + "-Low.csv",'w')
+   mfile.write("priority,date,resource,types,ip_src,ip_sport,ip_dst,ip_dport,alert_name\n")
+   for i in low:
+      if "ip_sport" in low:
+           ip_sport = i["ip_sport"]
+      else:
+           ip_sport = "0"
+      if "ip_dport" in low:
+           ip_dport = i["ip_dport"]
+      else:
+           ip_dport = "0"
+      mfile.write("%s,'%s',%s,%s,%s,%s,%s,%s,%s\n" % (i["priority"],i["date_added"],i["resource_name"],i["alerts_type_name"],i["ip_src"],ip_sport,i["ip_dst"],ip_dport,i["alert_name"]))
+   mfile.close()
+
+if med != 0:
+   noutput = opt.dir + opt.client + "-Med.csv"
+   print noutput
+   mfile = open(opt.dir + opt.client + '-Med.csv','w')
+   mfile.write("priority,date,resource,types,ip_src,ip_sport,ip_dst,ip_dport,alert_name\n")
+   for i in med:
+       if "ip_sport" in low:
+           ip_sport = i["ip_sport"]
+       else:
+           ip_sport = "0"
+       if "ip_dport" in low:
+           ip_dport = i["ip_dport"]
+       else:
+           ip_dport = "0"
+       mfile.write("%s,'%s',%s,%s,%s,%s,%s,%s,%s\n" % (i["priority"],i["date_added"],i["resource_name"],i["alerts_type_name"],i["ip_src"],i["ip_sport"],i["ip_dst"],i["ip_dport"],i["alert_name"]))
+   mfile.close()
+
+if high != 0:
+   noutput = opt.dir + opt.client + "-High.csv"
+   print noutput
+   mfile = open(opt.dir + opt.client + '-High.csv','w')
+   mfile.write("priority,date,resource,types,ip_src,ip_sport,ip_dst,ip_dport,alert_name\n")
+   for i in high:
+      if "ip_sport" in low:
+           ip_sport = i["ip_sport"]
+      else:
+           ip_sport = "0"
+      if "ip_dport" in low:
+           ip_dport = i["ip_dport"]
+      else:
+           ip_dport = "0"
+      mfile.write("%s,'%s',%s,%s,%s,%s,%s,%s,%s\n" % (i["priority"],i["date_added"],i["resource_name"],i["alerts_type_name"],i["ip_src"],i["ip_sport"],i["ip_dst"],i["ip_dport"],i["alert_name"]))
+   mfile.close()
+
+sys.exit(1)
