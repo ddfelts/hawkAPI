@@ -279,6 +279,12 @@ class hawkAPI(object):
                    final["total"] += 1
           return final
 
+      def getRes(self,res=""):
+          ndata ={"column[0]":"resource_name",
+                  "where[0]":"resource_name = '%s'" % res}
+          data = self.getHelper(self.getDevices(ndata))
+          return data
+
       def getTopGroups(self,start,end,lm=0):
           ndata = {"column[0]":"group_name",
                    "column[1]":"count group_name",
