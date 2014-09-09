@@ -90,6 +90,7 @@ class hawkAPI(object):
           if self.retry < self.setretry:
              bdata = self.doTest(api,data)
              if bdata == 0:
+                 time.sleep(3)
                  self.retry += 1
                  self.doPost(api,data)
              else:
