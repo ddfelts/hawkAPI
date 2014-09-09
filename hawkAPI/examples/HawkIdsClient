@@ -28,8 +28,10 @@ client = opt.client
 lm = 10
 
 #Get Top Priority for the client
-main = []
-data = hawk.getAllIdsPriorityByGroup(str(start),str(end),str(client))
+try:
+   data = hawk.getAllIdsPriorityByGroup(str(start),str(end),str(client))
+except:
+   data = None
 for i in data:
     main.append({"title":i["priority"],
                  "data":int(i["priority_count"])})   
