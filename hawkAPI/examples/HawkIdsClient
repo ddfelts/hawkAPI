@@ -32,6 +32,7 @@ try:
    data = hawk.getAllIdsPriorityByGroup(str(start),str(end),str(client))
 except:
    data = None
+main = []
 for i in data:
     main.append({"title":i["priority"],
                  "data":int(i["priority_count"])})   
