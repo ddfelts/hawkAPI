@@ -57,13 +57,18 @@ class hawkAPI(object):
           sys.exit(1) 
  
       def checkData(self,data):
-          if "status" in data:
-             if data["status"] == "success":
-                return data["results"]
-             else:
-                return 0
+          
+          if not data:
+              return 0
           else:
-             return 0
+              ndata = json.loads(data)
+              if "status" in ndata:
+                  if ndata["status"] == "success":
+                     return ndata["results"]
+                  else:
+                     return 0
+              else:
+                  return 0
 
       def doGet(self,data):
          url = "https://%s:8080/API/1.1/%s" % (self.server,data)
@@ -172,8 +177,7 @@ class hawkAPI(object):
           return ndata
 
       def getHelper(self,data):
-          ndata = json.loads(data)
-          return self.checkData(ndata)
+          return self.checkData(data)
 
       def sendmail(name,subj,text):
           sg = MIMEMultipart()
