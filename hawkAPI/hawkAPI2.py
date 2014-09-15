@@ -57,8 +57,11 @@ class hawkAPI(object):
           sys.exit(1) 
  
       def checkData(self,data):
-          if "results" in data:
-             return data["results"]
+          if "status" in data:
+             if data["status"] == "success":
+                return data["results"]
+             else:
+                return 0
           else:
              return 0
 
@@ -1054,11 +1057,11 @@ class hawkAPI(object):
 
       def traverse(self,data):
            res = []
-           for b in o:
+           for b in data:
                if b["children"] == False:
                   res.append(b["key"])          
                else:
                   res.append(b["key"])
-                  res.extend(traverse(b["children"]))
+                  res.extend(self.traverse(b["children"]))
            return res
           
