@@ -57,7 +57,8 @@ class hawkAPI(object):
           sys.exit(1) 
  
       def checkData(self,data):
-          
+          if data == " ":
+              return 0
           if not data:
               return 0
           else:
