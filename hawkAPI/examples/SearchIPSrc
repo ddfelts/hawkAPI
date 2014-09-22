@@ -30,10 +30,8 @@ if __name__ == '__main__':
    parser.add_option("-p",dest="passw",help="Password")
    parser.add_option("-c",dest="server",help="The hawk server IP")
    parser.add_option("-g",dest="client",help="Client name")
-   parser.add_option("-t",dest="days",help="Number of Days")
+   parser.add_option("-t",dest="minutes",help="Number of minutes")
    parser.add_option("-i",dest="ip",help="IP address to search for")
-   #parser.add_option("-l",dest="limit",help="Set Limit, (Default set to 10)")
-   #parser.add_option("-b",action="store_true",dest="debug",help="Turn on Debugging")
    group = OptionGroup(parser,"Extended Options","Uses these to fine tune the search off of defaults.")
    group.add_option("-l",dest="limit",help="Set Limit, (Default set to 10)")
    group.add_option("-d",action="store_true",dest="debug",help="Turn on Debugging")
@@ -52,10 +50,8 @@ if __name__ == '__main__':
    if not opt.days:
       parser.error("No Days set")
    else:
-      #start = datetime.now() + timedelta(hours=6) - timedelta(days=int(opt.days))
       start = datetime.now() - timedelta(minutes=int(opt.days))
       end = datetime.now()
-      #end = datetime.now() + timedelta(hours=6) 
    if not opt.ip:
       parser.error("No search IP set")
    if not opt.limit:
@@ -77,14 +73,18 @@ if __name__ == '__main__':
    print "Group: %s" % unicode(opt.client)
    print "Start: %s  End: %s" %(start,end)
    print " "
-   client = opt.client
-   mstart = "08-01-2014 00:00:00"
-   mend = "08-03-2014 17:00:00"
-   mclient = "2006-fps"
-   #data = hawk.searchIPSrcByGroup(mstart,send,opt.ip,opt.client,lm=limit)
-   data = hawk.searchIpSrcByGroup(mstart,mend,"10.102.160.233",mclient)
+   mstart = start
+   mend = end
+   mclient = opt.client
+   data = hawk.searchIpSrcByGroup(mstart,mend,opt.ip,mclient,lm=limit)
    table = [("Date","Name","IP Src","IP Dst","AlertName","Client")]
    for i in data:
-      table.append((i["date_added"],i["name"],i["ip_src"],i["ip_dst"],i["alert_name"],i["group_name"]))
+       if "name" not in i:
+            name = "NONE"
+       elif not i["name"]:
+            name = "NONE"
+       else:
+            name = i["name"]
+       table.append((i["date_added"],i["ip_src_host"],i["ip_src"],i["ip_dst"],i["alert_name"],i["group_name"]))
    hawk.print_table(table) 
    hawk.logout()
