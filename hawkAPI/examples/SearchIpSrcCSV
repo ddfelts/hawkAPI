@@ -1,0 +1,109 @@
+#!/usr/bin/python
+import time
+import sys
+import string
+from hawkAPI import hawkAPI2
+import datetime
+from datetime import date, timedelta
+from optparse import OptionParser
+import xlsxwriter
+
+fivemin = 5
+usage = 'SearchIpSrcCSV -u "id" -p "pass" -i "server" -c "client" -i ip -d days -n filename'
+parser = OptionParser(usage=usage)
+parser.add_option("-u",dest="user",help="Username")
+parser.add_option("-p",dest="passw",help="Password")
+parser.add_option("-i",dest="server",help="The hawk server IP")
+parser.add_option("-c",dest="client",help="Client name")
+parser.add_option("-d",dest="days",help="Number of Days")
+parser.add_option("-s",dest="ip",help="ip address to search")
+parser.add_option("-n",dest="fn",help="Filename to save")
+
+(opt,args) = parser.parse_args()
+if not opt.user:
+   parser.error("No User id provided")
+if not opt.passw:
+   parser.error("No Password provided")
+if not opt.server:
+   parser.error("Hawk IP address")
+if not opt.client:
+   parser.error("No Client Set")
+if not opt.days:
+   parser.error("Set Days")
+if not opt.ip:
+   parser.error("No IP address")
+if not opt.fn:
+   parser.error("No file name found")
+
+wkbook = xlsxwriter.Workbook(opt.fn)
+ws = wkbook.add_worksheet()
+ws.write("A1",'date')
+ws.write("B1",'resource_addr')
+ws.write("C1",'ip_Src')
+ws.write("D1",'ip_dst')
+ws.write("E1",'alert_name')
+ws.write("F1","payload")
+row=1
+col=0
+day = 1440
+totaldays = day * int(opt.days)
+startdate = int(totaldays) / 5
+data = []
+hawk = hawkAPI2.hawkAPI(opt.server)
+hawk.login(opt.user,opt.passw)
+
+
+
+def doData(row):
+    for i in data:
+        start,end,mid = i
+        doGet(start,end,mid,row)
+
+
+def doDates():
+    idit = 0
+    mydate = 0
+    for i in range(1,startdate):
+        if mydate != 1:
+           start = datetime.datetime.utcnow()
+           fstart = start - datetime.timedelta(minutes=totaldays)
+           end = fstart + datetime.timedelta(minutes=5)
+           data.append([fstart.replace(microsecond=0),end.replace(microsecond=0),idit])
+           nstart = end
+           mydate = 1
+        else:
+           idit = i
+           start = nstart
+           end = nstart + datetime.timedelta(minutes=5)
+           data.append([start.replace(microsecond=0),end.replace(microsecond=0),idit])
+           nstart = end
+
+def doGet(start,end,mid,row):
+   print "%s-%s---(%s)" % (start,end,mid)
+   try:
+       mdata = hawk.searchIpSrcByGroup(start,end,opt.ip,opt.client) 
+   except:
+      return
+   else:
+      if not mdata:
+         return
+      else:
+         for i in mdata:
+            ws.write(row,col,i["date_added"])
+            ws.write(row,col+1,i["resource_addr"])
+            ws.write(row,col+2,i["ip_src"])
+            ws.write(row,col+3,i["ip_dst"])
+            ws.write(row,col+4,i["alert_name"])
+            ws.write(row,col+5,i["payload"])
+            row += 1
+          
+def doClose():
+    hawk.logout()
+    
+if __name__ == '__main__':
+  row=1
+  col=0
+  doDates()
+  doData(row)
+  doClose()
+  sys.exit(1)
