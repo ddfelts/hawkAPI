@@ -3,10 +3,10 @@ import time
 import sys
 import string
 from hawkAPI import hawkAPI2
-from hawkAPI import hawkPdf
 import datetime
 from datetime import date, timedelta
 from optparse import OptionParser
+
 fivemin = 5
 usage = 'GetIDSReportCSV -u "id" -p "pass" -i "server" -c "client" -d days -l directory'
 
@@ -31,28 +31,28 @@ if not opt.days:
    parser.error("Set Days")
 if not opt.dir:
    parser.error("Directory to save files")
-
-
 day = 1440
 totaldays = day * int(opt.days)
 startdate = int(totaldays) / 5
 data = []
-#start = date.today() - timedelta(days=int(opt.days))
-#nend = str(start) + " 23:59:59"
-#nstart = str(start) + " 00:00:00"
 hawk = hawkAPI2.hawkAPI(opt.server)
 hawk.login(opt.user,opt.passw)
-nameit = opt.dir + opt.client + "-utc-IDS.csv"
-myfile = open(nameit,"w")
-myfile.write("date_added_utc,ip_src,ip_dst,alert_name\n")
+nameit = opt.dir + opt.client + "-utc-IDS.xlsx"
+wkbook = xlsxwriter.Workbook(nameit)
+ws = wkbook.add_worksheet()
+ws.write("A1",'date')
+ws.write("B1",'resource_addr')
+ws.write("C1",'ip_Src')
+ws.write("D1",'ip_dst')
+ws.write("E1",'alert_name')
+ws.write("F1","payload")
+row=1
+col=0
 
-
-def doData():
+def doData(row):
     for i in data:
         start,end,mid = i
-        doGet(start,end,mid)
-
-
+        doGet(start,end,mid,row)
 def doDates():
     idit = 0
     mydate = 0
@@ -70,28 +70,32 @@ def doDates():
            end = nstart + datetime.timedelta(minutes=5)
            data.append([start.replace(microsecond=0),end.replace(microsecond=0),idit])
            nstart = end
-
 def doGet(start,end,mid):
-   #print "%s-%s---(%s)" % (start,end,mid)
+   print "%s-%s---(%s)" % (start,end,mid)
    try:
        mdata = hawk.getIDSAlertsByGroup(start,end,opt.client) 
    except:
       return
    else:
-      for i in mdata:
-          #print i["date_added"]
-          myfile.write("'%s',%s,%s,%s\n" % (i["date_added"],i["ip_src"],i["ip_dst"],i["alert_name"]))
-          myfile.flush()
-
-
+      if not mdata:
+         return
+      else:
+         for i in mdata:
+            ws.write(row,col,i["date_added"])
+            ws.write(row,col+1,i["resource_addr"])
+            ws.write(row,col+2,i["ip_src"])
+            ws.write(row,col+3,i["ip_dst"])
+            ws.write(row,col+4,i["alert_name"])
+            ws.write(row,col+5,i["payload"])
+            row += 1
 def doClose():
     hawk.logout()
-    myfile.flush()
-    myfile.close()
     
 
 if __name__ == '__main__':
+  row=1
+  col=0
   doDates()
-  doData()
+  doData(row)
   doClose()
   sys.exit(1)
