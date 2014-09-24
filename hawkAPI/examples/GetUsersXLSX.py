@@ -58,16 +58,15 @@ def spreadSheet(filename, keys, mydata):
 	col=0
 	for x in keys:
 		if x != 'signature':
-			ws.write(0, col, x, bold)
+			ws.write(0, col, x.capitalize(), bold)
 			col+=1
 				
 	row = 1
 	col = 0
-	users_array=[]
 	for x in mydata:
 		ws.write(row, col, x["username"], align) 
 		ws.write(row, col+1, x["audit"], textwrap) 
-		ws.write(row, col+2, str(x["search"]), textwrap) 
+		ws.write(row, col+2, x["search"], textwrap) 
 		ws.write(row, col+3, x["admin"], textwrap) 
 		ws.write(row, col+4, x["uid"], textwrap) 
 		ws.write(row, col+5, x["phone"], textwrap) 
@@ -97,6 +96,3 @@ if __name__ == '__main__':
 	
 	hawk.logout()
 	sys.exit(1)
-
-
-
