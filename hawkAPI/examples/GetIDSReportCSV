@@ -41,11 +41,9 @@ nameit = opt.dir + opt.client + "-utc-IDS.xlsx"
 wkbook = xlsxwriter.Workbook(nameit)
 ws = wkbook.add_worksheet()
 ws.write("A1",'date')
-ws.write("B1",'resource_addr')
-ws.write("C1",'ip_Src')
-ws.write("D1",'ip_dst')
-ws.write("E1",'alert_name')
-ws.write("F1","payload")
+ws.write("B1",'ip_src')
+ws.write("C1",'ip_dst')
+ws.write("D1",'alert_name')
 row=1
 col=0
 
@@ -82,11 +80,9 @@ def doGet(start,end,mid):
       else:
          for i in mdata:
             ws.write(row,col,i["date_added"])
-            ws.write(row,col+1,i["resource_addr"])
-            ws.write(row,col+2,i["ip_src"])
-            ws.write(row,col+3,i["ip_dst"])
-            ws.write(row,col+4,i["alert_name"])
-            ws.write(row,col+5,i["payload"])
+            ws.write(row,col+1,i["ip_src"])
+            ws.write(row,col+2,i["ip_dst"])
+            ws.write(row,col+3,i["alert_name"])
             row += 1
 def doClose():
     hawk.logout()
