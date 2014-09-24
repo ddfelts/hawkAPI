@@ -8,6 +8,61 @@ from hawkAPI import hawkGraph
 from hawkAPI import hawkPdf
 from optparse import OptionParser
 
+
+def getPriorities(start,end,client,hawk,graph):
+    main = []
+    data = hawk.getAllIdsPriorityByGroup(start,end,client)
+    for i in data:
+        main.append({"title":i["priority"],
+                     "data":int(i["priority_count"])})   
+    graph.HBar("Priority",main)
+    mytable = [["Priority","Count"]]
+    for i in data:
+        mytable.append([i["priority"],i["priority_count"]])
+    return mytable
+
+
+def getIPSrc(start,end,client,hawk,graph):
+    main = []
+    data = hawk.getTopIdsIpSrcByGroup(start,end,client,lm=10)
+    for i in data:
+        main.append({"title":i["ip_src"],
+                     "data":int(i["ip_src_count"])})
+    graph.Pie("Top_IP_Source",main)
+    mytable = [["Ip Source","Count"]]
+    for i in data:
+        mytable.append([i["ip_src"],i["ip_src_count"]])
+    return mytable
+
+
+def getIPDst(start,end,client,hawk,graph):
+    main = []
+    data = hawk.getTopIdsIpDstByGroup(start,end,client,lm=10)
+    for i in data:
+        main.append({"title":i["ip_dst"],
+                     "data":int(i["ip_dst_count"])})
+    graph.Pie("Top_IP_Dst",main)
+    mytable = [["Ip Dst","Count"]]
+    for i in data:
+        mytable.append([i["ip_dst"],i["ip_dst_count"]])
+    return mytable
+
+def getAlerts(start,end,client,hawk,graph):
+    main = []
+    data = hawk.getTopIdsAlertsByGroup(start,end,client,lm=10)
+    for i in data:
+        main.append({"title":i["alert_name"],
+                     "data":int(i["alert_name_count"])})
+    graph.HBar("Top_Ten_Alerts",main)
+    mytable = [["Alert","Count"]]
+    for i in data:
+        mytable.append([i["alert_name"][0:25],i["alert_name_count"]])
+    return mytable
+
+
+
+if __name__ == '__main__':
+
 parser = OptionParser()
 parser.add_option("-u",dest="user",help="Username")
 parser.add_option("-p",dest="passw",help="Password")
@@ -15,70 +70,18 @@ parser.add_option("-i",dest="server",help="The hawk server IP")
 parser.add_option("-c",dest="client",help="Client name")
 parser.add_option("-d",dest="days",help="Number of Days")
 parser.add_option("-l",dest="dir",help="location to store")
-
 (opt,args) = parser.parse_args()
 
 graph = hawkGraph.hawkGraph()
-
 hawk = hawkAPI2.hawkAPI(opt.server)
 hawk.login(opt.user,opt.passw)
 start = hawk.getDateUtc("d",delta=opt.days)
 end = hawk.getDateUtc()
 client = opt.client
-lm = 10
-
-#Get Top Priority for the client
-try:
-   data = hawk.getAllIdsPriorityByGroup(str(start),str(end),str(client))
-except:
-   data = None
-main = []
-for i in data:
-    main.append({"title":i["priority"],
-                 "data":int(i["priority_count"])})   
-graph.HBar("Priority",main)
-mytable = [["Priority","Count"]]
-for i in data:
-    mytable.append([i["priority"],i["priority_count"]])
-pdata = mytable
-
-
-#Get Top IP srcs by the group name
-main = []
-data = hawk.getTopIdsIpSrcByGroup(str(start),str(end),str(client),lm=10)
-for i in data:
-     main.append({"title":i["ip_src"],
-                 "data":int(i["ip_src_count"])})
-graph.Pie("Top_IP_Source",main)
-mytable = [["Ip Source","Count"]]
-for i in data:
-    mytable.append([i["ip_src"],i["ip_src_count"]])
-ipdata = mytable
-
-
-#Get Top IP Dst by the group name
-main = []
-data = hawk.getTopIdsIpDstByGroup(str(start),str(end),opt.client,lm=10)
-for i in data:
-     main.append({"title":i["ip_dst"],
-                 "data":int(i["ip_dst_count"])})
-graph.Pie("Top_IP_Dst",main)
-mytable = [["Ip Dst","Count"]]
-for i in data:
-    mytable.append([i["ip_dst"],i["ip_dst_count"]])
-dstdata = mytable
-
-#Get Top alerts by group name
-main = []
-data = hawk.getTopIdsAlertsByGroup(str(start),str(end),opt.client,lm=10)
-for i in data:
-    main.append({"title":i["alert_name"],
-                 "data":int(i["alert_name_count"])})
-graph.HBar("Top_Ten_Alerts",main)
-mytable = [["Alert","Count"]]
-for i in data:
-    mytable.append([i["alert_name"][0:25],i["alert_name_count"]])
-adata = mytable
+p = getPriorities(start,end,client,hawk,graph)
+s = getIPSrc(start,end,client,hawk,graph)
+d = getIPDst(start,end,client,hawk,graph)
+a = getAlerts(start,end,client,hawk,graph)
 hawk.logout()
 
 nameit = opt.dir + opt.client + "-ids.pdf"
@@ -94,25 +97,25 @@ doc.createToc()
 doc.addStoryTitle("Top Ten IP Sources")
 doc.addStory("Top ten IP sources outlines the top ten source IP addresses creating alerts.")
 doc.addImage("%s/Top_IP_Source.png" % graph.getDir())
-doc.addTable(ipdata)
+doc.addTable(s)
 doc.addPageBreak()
 
 doc.addStoryTitle("Top Ten Destinations")
 doc.addStory("Top ten IP destination outlines the top ten targets being attacked or causing alerts on the network.")
 doc.addImage("%s/Top_IP_Dst.png" % graph.getDir())
-doc.addTable(dstdata)
+doc.addTable(d)
 doc.addPageBreak()
 
 doc.addStoryTitle("Top Priorities")
 doc.addStory("Alert Priority (Assigned by HAWK, or provided by 3rd-party Vendor ) 1= high to 5 = informational")
 doc.addImage("%s/Priority.png" % graph.getDir())
-doc.addTable(pdata)
+doc.addTable(p)
 doc.addPageBreak()
 
 doc.addStoryTitle("Top Ten Alerts")
 doc.addStory("This information displays the top ten alerts that are present and that have been seen in the current enviroment")
 doc.addImage("%s/Top_Ten_Alerts.png" % graph.getDir())
-doc.addTable(adata)
+doc.addTable(a)
 doc.addPageBreak()
 
 doc.savePdf()
